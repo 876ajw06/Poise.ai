@@ -10,18 +10,21 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { question, transcript, metrics, category, isPro } = await req.json();
+    const { question, transcript, metrics, category, isPro, geminiLiveAnalysis, speechInsights } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const system = `You are an elite interview coach specializing in ${category} interviews.
-You receive: the question asked, the candidate's spoken answer (transcribed), and live body-language metrics
-(0-100 scale: eye_contact, posture, smile, stability).
+You receive: the question asked, the candidate's spoken answer (transcribed), on-device body-language metrics
+(0-100 scale: eye_contact, posture, smile, stability), and optionally a parallel "Gemini Live" pass that streamed
+webcam JPEGs (~1 FPS) through Google's Gemini Live API for a second opinion on visible delivery (plus transcript-based filler-word notes).
 
 ${isPro ? "PRO MODE: Give an extensive, deeply tailored coaching response with concrete rewrites and a sample STAR-format model answer." : "FREE MODE: Give 3-4 punchy, actionable bullet points. Keep under 150 words."}
 
 Always:
-- Comment on BOTH content (clarity, structure, STAR usage) AND delivery (eye contact, posture, energy).
+- Comment on BOTH content (clarity, structure, STAR usage) AND delivery (eye contact, posture, energy, filler words, visible confidence).
+- Explicitly evaluate filler-word usage and pauses. Use provided measured counts/timings when available; if data is missing, say that.
+- When Gemini Live analysis is present, reconcile it with the numeric metrics: agree where they align, explain tension when they disagree, and never invent facts not supported by transcript or analyses.
 - Be warm, direct, never generic. Quote the candidate when useful.
 - End with a single overall score from 1-100.
 
@@ -33,11 +36,17 @@ Question: ${question}
 Candidate's answer (transcript):
 """${transcript || "(no transcript captured)"}"""
 
-Live body language metrics (0-100):
+On-device body language metrics (0-100):
 - Eye contact: ${metrics?.eyeContact ?? "n/a"}
 - Posture: ${metrics?.posture ?? "n/a"}
 - Smile/warmth: ${metrics?.smile ?? "n/a"}
-- Stability (low fidgeting): ${metrics?.stability ?? "n/a"}`;
+- Stability (low fidgeting): ${metrics?.stability ?? "n/a"}
+
+Gemini Live video + delivery analysis (JSON from a multimodal Live session; may be null if disabled or unavailable):
+${geminiLiveAnalysis ? JSON.stringify(geminiLiveAnalysis) : "(not provided)"}
+
+Measured speech pattern signals (from browser transcript timings):
+${speechInsights ? JSON.stringify(speechInsights) : "(not provided)"}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

@@ -2,14 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CATEGORIES, pickRandomQuestion } from "@/lib/categories";
 import { useBodyLanguage } from "@/hooks/useBodyLanguage";
+import { useGeminiLiveInterviewVision, type GeminiLiveInterviewAnalysis } from "@/hooks/useGeminiLiveInterviewVision";
+import { useInterviewVoice } from "@/hooks/useInterviewVoice";
 import { useSpeechTranscript } from "@/hooks/useSpeechTranscript";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import MetricsOverlay from "@/components/MetricsOverlay";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { Camera, Mic, MicOff, Play, StopCircle, RefreshCw, Loader2, Sparkles, ArrowRight } from "lucide-react";
+import { Camera, Mic, MicOff, Play, StopCircle, RefreshCw, Loader2, Sparkles, ArrowRight, Volume2 } from "lucide-react";
 
 type Phase = "setup" | "live" | "scoring" | "result";
 
@@ -27,12 +31,30 @@ export default function Practice() {
   const startedAtRef = useRef<number | null>(null);
   const [feedback, setFeedback] = useState<{ feedback_markdown: string; overall_score: number; strengths: string[]; improvements: string[] } | null>(null);
   const [scoring, setScoring] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+
+  const {
+    supported: voiceSupported,
+    isSpeaking,
+    speakQuestion,
+    speakCoachFeedback,
+    cancel: cancelVoice,
+  } = useInterviewVoice();
 
   const { metrics, ready: bodyReady, error: bodyError, reset: resetMetrics } = useBodyLanguage({
     videoEl: videoRef.current,
     running: phase === "live",
   });
-  const { transcript, supported: speechSupported, reset: resetTranscript } = useSpeechTranscript(phase === "live");
+  const { transcript, speechInsights, supported: speechSupported, reset: resetTranscript } = useSpeechTranscript(
+    phase === "live",
+    isSpeaking,
+  );
+  const geminiLiveVision = useGeminiLiveInterviewVision();
+  const voiceSessionRef = useRef(0);
+  const topFillers = Object.entries(speechInsights.fillerCounts)
+    .filter(([, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
 
   // Camera lifecycle
   useEffect(() => {
@@ -69,20 +91,51 @@ export default function Practice() {
     return () => clearInterval(id);
   }, [phase]);
 
+  useEffect(() => {
+    if (!voiceEnabled) {
+      cancelVoice();
+    }
+  }, [voiceEnabled, cancelVoice]);
+
+  useEffect(() => {
+    if (phase !== "live" || !voiceEnabled || !voiceSupported) return;
+    const session = voiceSessionRef.current;
+    const id = window.setTimeout(() => {
+      if (voiceSessionRef.current !== session) return;
+      speakQuestion(question);
+    }, 500);
+    return () => window.clearTimeout(id);
+  }, [phase, question, voiceEnabled, voiceSupported, speakQuestion]);
+
+  useEffect(() => {
+    if (phase !== "result" || !feedback || !voiceEnabled || !voiceSupported) return;
+    const id = window.setTimeout(() => speakCoachFeedback(feedback), 700);
+    return () => window.clearTimeout(id);
+  }, [phase, feedback, voiceEnabled, voiceSupported, speakCoachFeedback]);
+
   const handleStart = () => {
+    voiceSessionRef.current += 1;
     resetMetrics();
     resetTranscript();
     setElapsed(0);
     startedAtRef.current = Date.now();
     setPhase("live");
+    void geminiLiveVision.begin(() => videoRef.current, question, category);
   };
 
   const handleStop = async () => {
+    cancelVoice();
     setPhase("scoring");
     setScoring(true);
     const overall = Math.round(
       (metrics.eyeContact * 0.3 + metrics.posture * 0.25 + metrics.smile * 0.15 + metrics.stability * 0.3),
     );
+    let geminiLiveAnalysis: GeminiLiveInterviewAnalysis | null = null;
+    try {
+      geminiLiveAnalysis = await geminiLiveVision.finish(transcript, question, category);
+    } catch (e) {
+      console.warn("Gemini Live finalize skipped", e);
+    }
     try {
       const { data, error } = await supabase.functions.invoke("coach-feedback", {
         body: {
@@ -96,6 +149,8 @@ export default function Practice() {
           },
           category,
           isPro: !!profile?.is_pro,
+          geminiLiveAnalysis,
+          speechInsights,
         },
       });
       if (error) throw error;
@@ -124,12 +179,14 @@ export default function Practice() {
     } catch (e: any) {
       toast({ title: "Coach unavailable", description: e.message ?? "Please try again", variant: "destructive" });
       setPhase("live");
+      void geminiLiveVision.begin(() => videoRef.current, question, category);
     } finally {
       setScoring(false);
     }
   };
 
   const handleNext = () => {
+    cancelVoice();
     setFeedback(null);
     setQuestion(pickRandomQuestion(category));
     setPhase("setup");
@@ -170,6 +227,26 @@ export default function Practice() {
               )}
             </div>
             <p className="font-display text-xl leading-snug">{question}</p>
+            <div className="flex items-center justify-between gap-3 mt-4 pt-4 border-t border-border/60">
+              <div className="space-y-0.5">
+                <Label htmlFor="voice-toggle" className="text-xs font-medium cursor-pointer">
+                  Interviewer & coach voice
+                </Label>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  Reads the question aloud, then speaks feedback after your session (browser TTS).
+                </p>
+              </div>
+              <Switch
+                id="voice-toggle"
+                checked={voiceEnabled}
+                onCheckedChange={setVoiceEnabled}
+                disabled={!voiceSupported}
+                aria-label="Toggle spoken interviewer and coach"
+              />
+            </div>
+            {!voiceSupported && (
+              <p className="text-[11px] text-muted-foreground mt-2">Spoken audio is not supported in this browser.</p>
+            )}
           </Card>
 
           <Card className="p-5">
@@ -225,9 +302,23 @@ export default function Practice() {
                 )}
               </div>
               {phase === "live" && (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/80 backdrop-blur-sm text-xs">
-                  {speechSupported ? <Mic className="h-3 w-3 text-accent" /> : <MicOff className="h-3 w-3 text-muted-foreground" />}
-                  <span>{speechSupported ? "Listening" : "Mic not supported"}</span>
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                  {isSpeaking && voiceEnabled && voiceSupported && (
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent/15 border border-accent/30 text-xs text-accent">
+                      <Volume2 className="h-3 w-3 shrink-0" />
+                      <span>Interviewer speaking…</span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/80 backdrop-blur-sm text-xs">
+                    {speechSupported ? <Mic className="h-3 w-3 text-accent" /> : <MicOff className="h-3 w-3 text-muted-foreground" />}
+                    <span>
+                      {speechSupported
+                        ? isSpeaking
+                          ? "Mic paused (voice)"
+                          : "Listening"
+                        : "Mic not supported"}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
@@ -240,7 +331,7 @@ export default function Practice() {
             )}
 
             {/* Face detection hint */}
-            {phase === "live" && !metrics.faceDetected && (
+            {phase === "live" && !metrics.faceDetected && !isSpeaking && (
               <div className="absolute inset-x-0 bottom-4 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 mx-auto w-fit px-4 py-2 rounded-full bg-background/90 backdrop-blur-md text-sm">
                 Center your face in the frame
               </div>
@@ -265,6 +356,12 @@ export default function Practice() {
           {/* Result */}
           {phase === "result" && feedback && (
             <Card className="mt-6 p-6 lg:p-8 animate-fade-up">
+              {isSpeaking && voiceEnabled && voiceSupported && (
+                <div className="flex items-center gap-2 text-sm text-accent mb-4">
+                  <Volume2 className="h-4 w-4 shrink-0" />
+                  <span>Coach is reading your feedback aloud…</span>
+                </div>
+              )}
               <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
                 <div>
                   <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Overall score</p>
@@ -285,6 +382,38 @@ export default function Practice() {
                   <ul className="space-y-1.5 text-sm">
                     {feedback.improvements.map((s, i) => <li key={i} className="flex gap-2"><span className="text-accent">→</span>{s}</li>)}
                   </ul>
+                </div>
+              </div>
+
+              <div className="mb-6 p-4 rounded-xl border border-border/60 bg-background/40">
+                <p className="text-xs uppercase tracking-widest text-muted-foreground mb-3">Speech insights</p>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                  <div className="p-3 rounded-lg bg-secondary/50">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Words</p>
+                    <p className="font-mono text-lg">{speechInsights.totalWords}</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-secondary/50">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Filler words</p>
+                    <p className="font-mono text-lg">{speechInsights.fillerTotal}</p>
+                    <p className="text-[11px] text-muted-foreground">{speechInsights.fillerPer100Words}/100 words</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-secondary/50">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Long pauses</p>
+                    <p className="font-mono text-lg">{speechInsights.longPauseCount}</p>
+                    <p className="text-[11px] text-muted-foreground">avg {speechInsights.averagePauseMs} ms</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-secondary/50">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Max pause</p>
+                    <p className="font-mono text-lg">{speechInsights.maxPauseMs} ms</p>
+                  </div>
+                </div>
+                <div className="text-sm">
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Most used fillers</p>
+                  {topFillers.length ? (
+                    <p>{topFillers.map(([term, count]) => `${term} (${count})`).join(" · ")}</p>
+                  ) : (
+                    <p className="text-muted-foreground">No common filler words detected in this transcript.</p>
+                  )}
                 </div>
               </div>
 
