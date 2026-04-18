@@ -1,0 +1,7 @@
+project_id = "azhbjerzocrhtftjddru"
+
+[functions.coach-feedback]
+verify_jwt = false
+
+[functions.verify-xrpl-payment]
+verify_jwt = true
