@@ -14,7 +14,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Fraunces", "Georgia", "serif"],
+        display: ['"Plus Jakarta Sans"', "Inter", "system-ui", "sans-serif"],
         sans: ["Inter", "system-ui", "sans-serif"],
         mono: ["JetBrains Mono", "monospace"],
       },
@@ -27,6 +27,12 @@ export default {
         gold: {
           DEFAULT: "hsl(var(--gold))",
           foreground: "hsl(var(--gold-foreground))",
+        },
+        coral: {
+          DEFAULT: "hsl(var(--coral))",
+        },
+        mint: {
+          DEFAULT: "hsl(var(--mint))",
         },
         "accent-soft": {
           DEFAULT: "hsl(var(--accent-soft))",

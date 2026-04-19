@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { cleanCoachFeedbackDisplayText } from "@/lib/coachFeedbackDisplay";
 import { CATEGORIES, pickRandomQuestion } from "@/lib/categories";
 import { useBodyLanguage } from "@/hooks/useBodyLanguage";
 import { useGeminiLiveInterviewVision, type GeminiLiveInterviewAnalysis } from "@/hooks/useGeminiLiveInterviewVision";
@@ -207,8 +208,8 @@ export default function Practice() {
                   onClick={() => { setCategory(c.id); setQuestion(pickRandomQuestion(c.id)); }}
                   className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
                     category === c.id
-                      ? "bg-foreground text-background border-foreground"
-                      : "bg-background border-border hover:border-foreground/40"
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-card border-border hover:border-primary/25"
                   }`}
                 >
                   {c.label}
@@ -221,7 +222,7 @@ export default function Practice() {
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs uppercase tracking-widest text-muted-foreground">Question</p>
               {phase === "setup" && (
-                <button onClick={() => setQuestion(pickRandomQuestion(category))} className="text-xs text-accent hover:underline flex items-center gap-1">
+                <button onClick={() => setQuestion(pickRandomQuestion(category))} className="text-xs text-primary font-medium hover:underline flex items-center gap-1">
                   <RefreshCw className="h-3 w-3" /> shuffle
                 </button>
               )}
@@ -258,7 +259,7 @@ export default function Practice() {
           </Card>
 
           {phase === "setup" && (
-            <Button onClick={handleStart} disabled={!bodyReady} size="lg" className="w-full bg-foreground text-background hover:bg-foreground/90">
+            <Button onClick={handleStart} disabled={!bodyReady} size="lg" className="w-full shadow-md">
               {bodyReady ? <><Play className="h-4 w-4 mr-2" /> Start session</> : <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Loading models…</>}
             </Button>
           )}
@@ -272,7 +273,7 @@ export default function Practice() {
 
         {/* RIGHT — webcam */}
         <div className="lg:col-span-2">
-          <div className="relative rounded-3xl overflow-hidden bg-gradient-ink aspect-video shadow-elegant">
+          <div className="relative rounded-3xl overflow-hidden bg-muted aspect-video shadow-elegant ring-1 ring-border/60">
             <video
               ref={videoRef}
               muted
@@ -280,7 +281,7 @@ export default function Practice() {
               className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
             />
             {!stream && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-primary-foreground/80 gap-3">
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground gap-3">
                 <Camera className="h-10 w-10" />
                 <p className="text-sm">Allow camera & microphone to begin</p>
               </div>
@@ -304,13 +305,13 @@ export default function Practice() {
               {phase === "live" && (
                 <div className="flex items-center gap-2 flex-wrap justify-end">
                   {isSpeaking && voiceEnabled && voiceSupported && (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent/15 border border-accent/30 text-xs text-accent">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-soft border border-primary/15 text-xs text-primary">
                       <Volume2 className="h-3 w-3 shrink-0" />
                       <span>Interviewer speaking…</span>
                     </div>
                   )}
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-background/80 backdrop-blur-sm text-xs">
-                    {speechSupported ? <Mic className="h-3 w-3 text-accent" /> : <MicOff className="h-3 w-3 text-muted-foreground" />}
+                    {speechSupported ? <Mic className="h-3 w-3 text-primary" /> : <MicOff className="h-3 w-3 text-muted-foreground" />}
                     <span>
                       {speechSupported
                         ? isSpeaking
@@ -340,7 +341,7 @@ export default function Practice() {
             {/* Scoring overlay */}
             {phase === "scoring" && (
               <div className="absolute inset-0 bg-background/80 backdrop-blur-md flex flex-col items-center justify-center gap-3">
-                <Loader2 className="h-10 w-10 animate-spin text-accent" />
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
                 <p className="font-display text-xl">Coach is analyzing your answer…</p>
               </div>
             )}
@@ -357,7 +358,7 @@ export default function Practice() {
           {phase === "result" && feedback && (
             <Card className="mt-6 p-6 lg:p-8 animate-fade-up">
               {isSpeaking && voiceEnabled && voiceSupported && (
-                <div className="flex items-center gap-2 text-sm text-accent mb-4">
+                <div className="flex items-center gap-2 text-sm text-primary mb-4">
                   <Volume2 className="h-4 w-4 shrink-0" />
                   <span>Coach is reading your feedback aloud…</span>
                 </div>
@@ -365,22 +366,35 @@ export default function Practice() {
               <div className="flex items-start justify-between gap-4 mb-6 flex-wrap">
                 <div>
                   <p className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Overall score</p>
-                  <p className="font-display text-6xl leading-none">{feedback.overall_score}<span className="text-2xl text-muted-foreground">/100</span></p>
+                  <p className="font-display text-6xl leading-none">
+                    <span className="text-mint">{feedback.overall_score}</span>
+                    <span className="text-2xl text-muted-foreground">/100</span>
+                  </p>
                 </div>
                 {profile?.is_pro && <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-gradient-pro text-primary-foreground"><Sparkles className="h-3 w-3" /> PRO feedback</span>}
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4 mb-6">
-                <div className="p-4 rounded-xl bg-secondary/50">
+                <div className="p-4 rounded-xl bg-mint-soft border border-border/60">
                   <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Strengths</p>
                   <ul className="space-y-1.5 text-sm">
-                    {feedback.strengths.map((s, i) => <li key={i} className="flex gap-2"><span className="text-accent">✓</span>{s}</li>)}
+                    {feedback.strengths.map((s, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="text-mint">✓</span>
+                        {cleanCoachFeedbackDisplayText(s)}
+                      </li>
+                    ))}
                   </ul>
                 </div>
-                <div className="p-4 rounded-xl bg-secondary/50">
+                <div className="p-4 rounded-xl bg-coral-soft border border-border/60">
                   <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Improvements</p>
                   <ul className="space-y-1.5 text-sm">
-                    {feedback.improvements.map((s, i) => <li key={i} className="flex gap-2"><span className="text-accent">→</span>{s}</li>)}
+                    {feedback.improvements.map((s, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="text-coral">→</span>
+                        {cleanCoachFeedbackDisplayText(s)}
+                      </li>
+                    ))}
                   </ul>
                 </div>
               </div>
@@ -418,16 +432,16 @@ export default function Practice() {
               </div>
 
               <div className="prose prose-sm max-w-none whitespace-pre-wrap text-foreground leading-relaxed">
-                {feedback.feedback_markdown}
+                {cleanCoachFeedbackDisplayText(feedback.feedback_markdown)}
               </div>
 
               <div className="mt-6 flex flex-wrap gap-3">
-                <Button onClick={handleNext} className="bg-foreground text-background hover:bg-foreground/90">
+                <Button onClick={handleNext} className="shadow-md">
                   Practice another <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
                 <Button variant="outline" onClick={() => navigate("/dashboard")}>View dashboard</Button>
                 {!profile?.is_pro && (
-                  <Button variant="outline" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground" onClick={() => navigate("/pro")}>
+                  <Button variant="outline" className="border-primary/20 text-primary bg-card hover:bg-blue-soft" onClick={() => navigate("/pro")}>
                     <Sparkles className="h-4 w-4 mr-2" /> Unlock deeper feedback
                   </Button>
                 )}

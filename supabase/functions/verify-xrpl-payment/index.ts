@@ -44,16 +44,33 @@ serve(async (req) => {
       ? "https://xrplcluster.com/"
       : "https://s.altnet.rippletest.net:51234/";
 
-    const xrplResp = await fetch(rpcUrl, {
+    const rpcBody = {
+      jsonrpc: "2.0" as const,
+      id: 1,
+      method: "tx",
+      params: [{ transaction: txHash.trim(), binary: false }],
+    };
+
+    let xrplResp = await fetch(rpcUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        method: "tx",
-        params: [{ transaction: txHash, binary: false }],
-      }),
+      body: JSON.stringify(rpcBody),
     });
-    const xrplData = await xrplResp.json();
-    const tx = xrplData?.result;
+    let xrplData = await xrplResp.json();
+
+    // JSON-RPC 2.0 envelope improves compatibility with public rippled nodes; retry testnet on miss/empty.
+    let tx = xrplData?.result;
+    const txMissing = !tx || (typeof tx === "object" && tx !== null && "error" in tx && (tx as { error?: string }).error);
+    if (!isMainnet && txMissing) {
+      const fallback = "https://testnet.honeycluster.io/";
+      xrplResp = await fetch(fallback, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(rpcBody),
+      });
+      xrplData = await xrplResp.json();
+      tx = xrplData?.result;
+    }
 
     if (!tx || tx.error) {
       return new Response(JSON.stringify({ error: "Transaction not found on XRPL" }), {

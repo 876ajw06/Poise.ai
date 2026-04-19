@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { cleanCoachFeedbackDisplayText } from "@/lib/coachFeedbackDisplay";
 
 export type CoachFeedbackShape = {
   feedback_markdown: string;
@@ -137,9 +138,13 @@ export function useInterviewVoice() {
     (fb: CoachFeedbackShape) => {
       if (!supported) return;
       const voice = pickVoice("coach");
-      const strengths = fb.strengths.length ? fb.strengths.join(". ") : "None listed.";
-      const improvements = fb.improvements.length ? fb.improvements.join(". ") : "None listed.";
-      const summary = stripMarkdownForSpeech(fb.feedback_markdown);
+      const strengths = fb.strengths.length
+        ? fb.strengths.map((s) => cleanCoachFeedbackDisplayText(s)).join(". ")
+        : "None listed.";
+      const improvements = fb.improvements.length
+        ? fb.improvements.map((s) => cleanCoachFeedbackDisplayText(s)).join(". ")
+        : "None listed.";
+      const summary = stripMarkdownForSpeech(cleanCoachFeedbackDisplayText(fb.feedback_markdown));
 
       const part1 = new SpeechSynthesisUtterance(
         `Your overall score is ${fb.overall_score} out of 100. Here is a quick summary. Strengths: ${strengths}`,

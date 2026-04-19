@@ -6,18 +6,36 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+/** Default chat completions endpoint; override with COACH_AI_CHAT_URL if needed. */
+const DEFAULT_CHAT_COMPLETIONS_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { question, transcript, metrics, category, isPro, geminiLiveAnalysis, speechInsights } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const { question, transcript, metrics, category, isPro, geminiLiveAnalysis, speechInsights, interviewSetup } = await req.json();
+    const coachApiKey = Deno.env.get("LOVABLE_API_KEY") ?? Deno.env.get("COACH_AI_API_KEY");
+    if (!coachApiKey) {
+      throw new Error("LOVABLE_API_KEY is not configured (optional override: COACH_AI_API_KEY).");
+    }
+    const chatUrl = Deno.env.get("COACH_AI_CHAT_URL") ?? DEFAULT_CHAT_COMPLETIONS_URL;
+
+    const setup = interviewSetup as
+      | {
+          jobRole?: string;
+          company?: string;
+          seniority?: string;
+          durationMin?: number;
+          modes?: string[];
+          resumePreview?: string;
+        }
+      | undefined;
 
     const system = `You are an elite interview coach specializing in ${category} interviews.
 You receive: the question asked, the candidate's spoken answer (transcribed), on-device body-language metrics
 (0-100 scale: eye_contact, posture, smile, stability), and optionally a parallel "Gemini Live" pass that streamed
 webcam JPEGs (~1 FPS) through Google's Gemini Live API for a second opinion on visible delivery (plus transcript-based filler-word notes).
+When interviewSetup is provided, treat it as authoritative context for a live mock interview (role, seniority, company, enabled modes, résumé excerpt).
 
 ${isPro ? "PRO MODE: Give an extensive, deeply tailored coaching response with concrete rewrites and a sample STAR-format model answer." : "FREE MODE: Give 3-4 punchy, actionable bullet points. Keep under 150 words."}
 
@@ -32,6 +50,9 @@ Return JSON only via the provided tool.`;
 
     const userMsg = `Category: ${category}
 Question: ${question}
+
+Live interview setup (may be null for classic practice sessions):
+${setup ? JSON.stringify(setup) : "(not provided)"}
 
 Candidate's answer (transcript):
 """${transcript || "(no transcript captured)"}"""
@@ -48,10 +69,10 @@ ${geminiLiveAnalysis ? JSON.stringify(geminiLiveAnalysis) : "(not provided)"}
 Measured speech pattern signals (from browser transcript timings):
 ${speechInsights ? JSON.stringify(speechInsights) : "(not provided)"}`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch(chatUrl, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${coachApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -97,7 +118,7 @@ ${speechInsights ? JSON.stringify(speechInsights) : "(not provided)"}`;
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       if (response.status === 402)
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Add credits in Settings → Workspace → Usage." }), {
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Add credits in your workspace usage/billing settings." }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

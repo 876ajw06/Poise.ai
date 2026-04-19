@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Secrets & local env (never commit real keys)
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -23,3 +28,6 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# Generated from root targeticon.jpg on dev/build (see vite.config.ts)
+public/targeticon.jpg

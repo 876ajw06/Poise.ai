@@ -19,48 +19,111 @@ export type Database = {
           ai_feedback: string | null
           answer_transcript: string | null
           category: string
+          company: string | null
           created_at: string
           duration_seconds: number | null
           eye_contact_score: number | null
           id: string
+          interview_modes: Json
           is_pro_feedback: boolean
+          job_role: string | null
           overall_score: number | null
           posture_score: number | null
           question: string
+          resume_context: string | null
+          seniority: string | null
+          session_kind: string
           smile_score: number | null
           stability_score: number | null
+          target_duration_min: number | null
           user_id: string
         }
         Insert: {
           ai_feedback?: string | null
           answer_transcript?: string | null
           category: string
+          company?: string | null
           created_at?: string
           duration_seconds?: number | null
           eye_contact_score?: number | null
           id?: string
+          interview_modes?: Json
           is_pro_feedback?: boolean
+          job_role?: string | null
           overall_score?: number | null
           posture_score?: number | null
           question: string
+          resume_context?: string | null
+          seniority?: string | null
+          session_kind?: string
           smile_score?: number | null
           stability_score?: number | null
+          target_duration_min?: number | null
           user_id: string
         }
         Update: {
           ai_feedback?: string | null
           answer_transcript?: string | null
           category?: string
+          company?: string | null
           created_at?: string
           duration_seconds?: number | null
           eye_contact_score?: number | null
           id?: string
+          interview_modes?: Json
           is_pro_feedback?: boolean
+          job_role?: string | null
           overall_score?: number | null
           posture_score?: number | null
           question?: string
+          resume_context?: string | null
+          seniority?: string | null
+          session_kind?: string
           smile_score?: number | null
           stability_score?: number | null
+          target_duration_min?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      leaderboard_entries: {
+        Row: {
+          company: string | null
+          created_at: string
+          display_name: string | null
+          duration_minutes: number | null
+          id: string
+          interview_modes: Json | null
+          job_role: string | null
+          overall_score: number
+          seniority: string | null
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          display_name?: string | null
+          duration_minutes?: number | null
+          id?: string
+          interview_modes?: Json | null
+          job_role?: string | null
+          overall_score: number
+          seniority?: string | null
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          display_name?: string | null
+          duration_minutes?: number | null
+          id?: string
+          interview_modes?: Json | null
+          job_role?: string | null
+          overall_score?: number
+          seniority?: string | null
+          session_id?: string
           user_id?: string
         }
         Relationships: []

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
 import { GoogleGenAI, Modality, type LiveServerMessage, type Session } from "@google/genai";
 
-const DEFAULT_LIVE_MODEL = "gemini-live-2.5-flash-preview";
+/** Default matches Google’s “Gemini 3.1 Flash Live Preview” id for Live sessions. Override with `VITE_GEMINI_LIVE_MODEL`. */
+const DEFAULT_LIVE_MODEL = "gemini-3.1-flash-live-preview";
 const FRAME_INTERVAL_MS = 1000;
 const FINALIZE_TIMEOUT_MS = 75_000;
 
@@ -45,7 +46,7 @@ function parseAnalysis(text: string): GeminiLiveInterviewAnalysis {
  * Streams webcam JPEG frames (~1 FPS) to the Gemini Live API during a session,
  * then requests a structured JSON summary of visible delivery + transcript-based fillers.
  *
- * Set `VITE_GEMINI_API_KEY` in `.env` (Google AI Studio). Optional: `VITE_GEMINI_LIVE_MODEL`.
+ * Set `VITE_GEMINI_API_KEY` in `.env` (Google AI Studio). Optional: `VITE_GEMINI_LIVE_MODEL` (defaults to Gemini 3.1 Flash Live Preview).
  */
 export function useGeminiLiveInterviewVision() {
   const sessionRef = useRef<Session | null>(null);

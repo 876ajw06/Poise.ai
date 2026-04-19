@@ -9,9 +9,9 @@ const items = [
 ] as const;
 
 function colorFor(v: number) {
-  if (v >= 75) return "hsl(140 65% 45%)";
-  if (v >= 50) return "hsl(var(--gold))";
-  return "hsl(var(--accent))";
+  if (v >= 75) return "hsl(160 84% 36%)";
+  if (v >= 50) return "hsl(217 91% 52%)";
+  return "hsl(var(--coral))";
 }
 
 export default function MetricsOverlay({ metrics, large = false }: { metrics: LiveMetrics; large?: boolean }) {
@@ -20,7 +20,7 @@ export default function MetricsOverlay({ metrics, large = false }: { metrics: Li
       {items.map(({ key, label, icon: Icon }) => {
         const v = metrics[key];
         return (
-          <div key={key} className="flex items-center gap-3 bg-background/85 backdrop-blur-md rounded-lg px-3 py-2 border border-border/60 shadow-sm min-w-[180px]">
+          <div key={key} className="flex items-center gap-3 bg-card/95 backdrop-blur-md rounded-xl px-3 py-2 border border-border/70 shadow-md min-w-[180px]">
             <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
             <div className="flex-1">
               <div className="flex items-center justify-between text-xs mb-1">

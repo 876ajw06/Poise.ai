@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, Wallet, ExternalLink, CheckCircle2, Loader2, Copy } from "lucide-react";
+import { XRPL_FAUCETS_PAGE, XRPL_TESTNET_TOPUP_FAUCET, xrplAccountExplorerUrl, xrplTxExplorerUrl } from "@/lib/xrplLinks";
 
 const DESTINATION = "rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe"; // matches edge function default
 const PRICE = "1";
@@ -47,9 +48,7 @@ export default function ProUpgrade() {
     }
   };
 
-  const explorerBase = network === "testnet"
-    ? "https://testnet.xrpl.org/accounts/"
-    : "https://livenet.xrpl.org/accounts/";
+  const explorerAccountHref = xrplAccountExplorerUrl(network, DESTINATION);
 
   return (
     <main className="container py-12 max-w-3xl">
@@ -57,7 +56,9 @@ export default function ProUpgrade() {
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-pro text-primary-foreground text-xs font-medium uppercase tracking-wide mb-4">
           <Sparkles className="h-3 w-3" /> Poise Pro
         </div>
-        <h1 className="font-display text-5xl tracking-tight">Unlock with <span className="italic text-accent">XRP</span></h1>
+        <h1 className="font-display text-5xl font-extrabold tracking-tight">
+          Unlock with <span className="text-primary">XRP</span>
+        </h1>
         <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
           Send {PRICE} XRP from any wallet to the address below, then paste your transaction hash.
           Verified on the XRP Ledger — instant access for 30 days.
@@ -89,8 +90,8 @@ export default function ProUpgrade() {
             <li>✓ Session history</li>
           </ul>
         </Card>
-        <Card className="p-6 border-accent/40 ring-2 ring-accent/20">
-          <p className="text-xs uppercase tracking-widest text-accent mb-3">Pro · 30 days</p>
+        <Card className="p-6 border-primary/25 ring-2 ring-primary/10 shadow-md">
+          <p className="text-xs uppercase tracking-widest text-primary font-semibold mb-3">Pro · 30 days</p>
           <p className="font-display text-3xl mb-1">1 <span className="text-lg text-muted-foreground">XRP</span></p>
           <p className="text-xs text-muted-foreground mb-4">~$0.50 at writing</p>
           <ul className="space-y-2 text-sm">
@@ -104,7 +105,7 @@ export default function ProUpgrade() {
 
       <Card className="p-6 lg:p-8">
         <div className="flex items-center gap-2 mb-4">
-          <Wallet className="h-5 w-5 text-accent" />
+          <Wallet className="h-5 w-5 text-primary" />
           <h2 className="font-display text-2xl">Pay & verify</h2>
         </div>
 
@@ -118,8 +119,8 @@ export default function ProUpgrade() {
                   onClick={() => setNetwork(n)}
                   className={`px-4 py-2 rounded-lg text-sm border transition-colors ${
                     network === n
-                      ? "bg-foreground text-background border-foreground"
-                      : "bg-background border-border hover:border-foreground/40"
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-card border-border hover:border-primary/25"
                   }`}
                 >
                   {n === "testnet" ? "Testnet (free XRP)" : "Mainnet (real XRP)"}
@@ -128,10 +129,15 @@ export default function ProUpgrade() {
             </div>
             {network === "testnet" && (
               <p className="text-xs text-muted-foreground mt-2">
-                Need test XRP? Get free testnet funds from the{" "}
-                <a className="text-accent underline" href="https://xrpl.org/xrp-testnet-faucet.html" target="_blank" rel="noreferrer">
-                  XRPL Testnet Faucet <ExternalLink className="inline h-3 w-3" />
+                Need test XRP? Use the{" "}
+                <a className="text-primary font-medium underline underline-offset-2" href={XRPL_FAUCETS_PAGE} target="_blank" rel="noopener noreferrer">
+                  official XRPL faucets <ExternalLink className="inline h-3 w-3" />
                 </a>
+                {" "}or{" "}
+                <a className="text-primary font-medium underline underline-offset-2" href={XRPL_TESTNET_TOPUP_FAUCET} target="_blank" rel="noopener noreferrer">
+                  top up this address <ExternalLink className="inline h-3 w-3" />
+                </a>
+                .
               </p>
             )}
           </div>
@@ -148,10 +154,10 @@ export default function ProUpgrade() {
               </button>
             </div>
             <a
-              href={`${explorerBase}${DESTINATION}`}
+              href={explorerAccountHref}
               target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-accent mt-2 hover:underline"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-primary font-medium mt-2 hover:underline"
             >
               View on XRPL explorer <ExternalLink className="h-3 w-3" />
             </a>
@@ -169,6 +175,16 @@ export default function ProUpgrade() {
             <p className="text-xs text-muted-foreground mt-2">
               After your wallet confirms, copy the transaction hash from your wallet or the explorer and paste it here.
             </p>
+            {txHash.trim().length >= 16 && (
+              <a
+                href={xrplTxExplorerUrl(network, txHash.trim())}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-primary font-medium mt-2 hover:underline"
+              >
+                Preview this hash on explorer <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
           </div>
 
           <Button onClick={verify} disabled={verifying} size="lg" className="w-full bg-gradient-pro text-primary-foreground hover:opacity-90">

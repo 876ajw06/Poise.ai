@@ -8,42 +8,71 @@ export default function SiteHeader() {
   const loc = useLocation();
   const navigate = useNavigate();
 
+  const navClass = (active: boolean) =>
+    `text-sm font-medium px-4 py-2 rounded-full transition-colors ${
+      active ? "text-foreground bg-secondary" : "text-muted-foreground hover:text-foreground hover:bg-secondary/70"
+    }`;
+
   return (
-    <header className="sticky top-0 z-40 backdrop-blur-md bg-background/70 border-b border-border/60">
-      <div className="container flex items-center justify-between h-16">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-ink flex items-center justify-center text-primary-foreground font-display text-lg">P</div>
-          <span className="font-display text-xl tracking-tight">Poise</span>
-          <span className="text-xs text-muted-foreground hidden sm:inline">/ interview coach</span>
+    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
+      <div className="container flex items-center justify-between h-16 md:h-[4.25rem]">
+        <Link to="/" className="flex items-center gap-2 group">
+          <span className="font-display text-xl md:text-2xl font-extrabold tracking-tight text-foreground lowercase inline-flex items-center gap-1.5">
+            poise
+            <span className="w-2 h-2 rounded-full bg-primary shrink-0" aria-hidden />
+          </span>
+          <span className="text-xs text-muted-foreground hidden sm:inline font-sans font-normal normal-case tracking-normal">
+            interview coach
+          </span>
         </Link>
-        <nav className="flex items-center gap-1 sm:gap-3">
-          {user && (
+        <nav className="flex items-center gap-0.5 sm:gap-1">
+          {!user && (
             <>
-              <Link to="/dashboard" className={`text-sm px-3 py-2 rounded-md hover:bg-secondary transition-colors ${loc.pathname === "/dashboard" ? "text-foreground" : "text-muted-foreground"}`}>
-                Dashboard
+              <Link to="/#how" className={`${navClass(false)} hidden md:inline-flex`}>
+                How it works
               </Link>
-              <Link to="/practice" className={`text-sm px-3 py-2 rounded-md hover:bg-secondary transition-colors ${loc.pathname === "/practice" ? "text-foreground" : "text-muted-foreground"}`}>
-                Practice
+              <Link to="/leaderboard" className={navClass(loc.pathname === "/leaderboard")}>
+                Leaderboard
               </Link>
-              {profile?.is_pro ? (
-                <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-gradient-pro text-primary-foreground">
-                  <Sparkles className="h-3 w-3" /> PRO
-                </span>
-              ) : (
-                <Link to="/pro" className="hidden sm:inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full border border-accent/40 text-accent hover:bg-accent/10 transition-colors">
-                  <Sparkles className="h-3 w-3" /> Go Pro
-                </Link>
-              )}
-              <Button variant="ghost" size="sm" onClick={() => signOut().then(() => navigate("/"))}>
-                Sign out
+              <Link to="/auth" className={navClass(loc.pathname === "/auth")}>
+                Sign in
+              </Link>
+              <Button asChild size="sm" className="ml-1 shadow-sm">
+                <Link to="/auth?mode=signup">Get started free</Link>
               </Button>
             </>
           )}
-          {!user && (
+          {user && (
             <>
-              <Link to="/auth" className="text-sm px-3 py-2 text-muted-foreground hover:text-foreground">Sign in</Link>
-              <Button asChild size="sm" variant="default" className="bg-foreground text-background hover:bg-foreground/90">
-                <Link to="/auth?mode=signup">Get started</Link>
+              <Link to="/dashboard" className={`${navClass(loc.pathname === "/dashboard")} hidden sm:inline-flex`}>
+                Dashboard
+              </Link>
+              <Link to="/leaderboard" className={navClass(loc.pathname === "/leaderboard")}>
+                Leaderboard
+              </Link>
+              <Link to="/interview" className={`${navClass(loc.pathname.startsWith("/interview"))} hidden md:inline-flex`}>
+                Live interview
+              </Link>
+              <Link to="/practice" className={navClass(loc.pathname === "/practice")}>
+                Practice
+              </Link>
+              <Link to="/settings" className={`${navClass(loc.pathname === "/settings")} hidden lg:inline-flex`}>
+                Settings
+              </Link>
+              {profile?.is_pro ? (
+                <span className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-gradient-pro text-primary-foreground shadow-sm">
+                  <Sparkles className="h-3 w-3" /> PRO
+                </span>
+              ) : (
+                <Link
+                  to="/pro"
+                  className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-blue-soft text-primary border border-primary/15 hover:bg-primary/10 transition-colors"
+                >
+                  <Sparkles className="h-3 w-3" /> Go Pro
+                </Link>
+              )}
+              <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => signOut().then(() => navigate("/"))}>
+                Sign out
               </Button>
             </>
           )}

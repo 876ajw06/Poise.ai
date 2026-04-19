@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { cleanCoachFeedbackDisplayText } from "@/lib/coachFeedbackDisplay";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,15 +56,15 @@ export default function Dashboard() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm text-muted-foreground">Welcome back{profile?.display_name ? `, ${profile.display_name}` : ""}.</p>
-          <h1 className="font-display text-4xl tracking-tight">Your progress</h1>
+          <h1 className="font-display text-4xl font-extrabold tracking-tight">Your progress</h1>
         </div>
         <div className="flex gap-2">
           {!profile?.is_pro && (
-            <Button asChild variant="outline" className="border-accent text-accent hover:bg-accent hover:text-accent-foreground">
+            <Button asChild variant="outline" className="border-primary/20 text-primary bg-card hover:bg-blue-soft">
               <Link to="/pro"><Sparkles className="h-4 w-4 mr-2" /> Go Pro</Link>
             </Button>
           )}
-          <Button asChild className="bg-foreground text-background hover:bg-foreground/90">
+          <Button asChild>
             <Link to="/practice">New session <ArrowRight className="h-4 w-4 ml-2" /></Link>
           </Button>
         </div>
@@ -85,7 +86,7 @@ export default function Dashboard() {
                 <XAxis dataKey="n" stroke="hsl(var(--muted-foreground))" fontSize={11} />
                 <YAxis domain={[0, 100]} stroke="hsl(var(--muted-foreground))" fontSize={11} />
                 <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-                <Line type="monotone" dataKey="score" stroke="hsl(var(--accent))" strokeWidth={2.5} dot={{ r: 4, fill: "hsl(var(--accent))" }} />
+                <Line type="monotone" dataKey="score" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 4, fill: "hsl(var(--primary))" }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -99,7 +100,7 @@ export default function Dashboard() {
           <Card className="p-12 text-center">
             <p className="font-display text-2xl mb-2">No sessions yet</p>
             <p className="text-muted-foreground mb-6">Run your first practice — it takes about 2 minutes.</p>
-            <Button asChild className="bg-foreground text-background hover:bg-foreground/90">
+            <Button asChild>
               <Link to="/practice">Start practicing</Link>
             </Button>
           </Card>
@@ -124,8 +125,10 @@ export default function Dashboard() {
               </div>
               {s.ai_feedback && (
                 <details className="mt-3 group">
-                  <summary className="text-sm text-accent cursor-pointer hover:underline">View coach feedback</summary>
-                  <div className="mt-3 p-4 rounded-lg bg-secondary/40 text-sm whitespace-pre-wrap leading-relaxed">{s.ai_feedback}</div>
+                  <summary className="text-sm text-primary font-medium cursor-pointer hover:underline">View coach feedback</summary>
+                  <div className="mt-3 p-4 rounded-lg bg-secondary/40 text-sm whitespace-pre-wrap leading-relaxed">
+                    {cleanCoachFeedbackDisplayText(s.ai_feedback)}
+                  </div>
                 </details>
               )}
             </Card>
@@ -138,10 +141,10 @@ export default function Dashboard() {
 
 function Stat({ icon: Icon, label, value, accent }: { icon: any; label: string; value: any; accent?: boolean }) {
   return (
-    <Card className={`p-5 ${accent ? "bg-gradient-ink text-primary-foreground border-transparent" : ""}`}>
+    <Card className={`p-5 ${accent ? "bg-gradient-accent text-primary-foreground border-transparent shadow-md" : ""}`}>
       <div className="flex items-center gap-3 mb-1">
-        <Icon className={`h-4 w-4 ${accent ? "text-gold" : "text-muted-foreground"}`} />
-        <p className={`text-xs uppercase tracking-widest ${accent ? "text-primary-foreground/70" : "text-muted-foreground"}`}>{label}</p>
+        <Icon className={`h-4 w-4 ${accent ? "text-primary-foreground/90" : "text-muted-foreground"}`} />
+        <p className={`text-xs uppercase tracking-widest ${accent ? "text-primary-foreground/80" : "text-muted-foreground"}`}>{label}</p>
       </div>
       <p className="font-display text-3xl">{value}</p>
     </Card>
